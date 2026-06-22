@@ -4,6 +4,8 @@
 
 一个非官方的 Windows Codex 用量灵动岛，显示 5 小时和每周限额的剩余百分比。
 
+项目地址：<https://github.com/da-zheng-ge/codex-usage-island>
+
 > 本项目是非官方社区项目，与 OpenAI 没有关联，也未获得 OpenAI 的认可或赞助。
 
 ## 功能

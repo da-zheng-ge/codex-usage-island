@@ -4,6 +4,8 @@
 
 An unofficial Windows floating island that shows the remaining Codex five-hour and weekly usage limits.
 
+Repository: <https://github.com/da-zheng-ge/codex-usage-island>
+
 Codex Usage Island stays at the top of the desktop, animates while Codex is working, expands on click, and hides when Codex is both idle and minimized.
 
 > This is an unofficial community project. It is not affiliated with, endorsed by, or sponsored by OpenAI.
