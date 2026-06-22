@@ -129,6 +129,9 @@ public sealed class CodexIslandWindow : Window
     private double restingLeft;
     private double restingTop;
     private DateTime lastUsageRequest = DateTime.MinValue;
+    private DateTime resetPollingTarget = DateTime.MinValue;
+    private DateTime nextResetPoll = DateTime.MaxValue;
+    private int resetPollsRemaining;
     private Storyboard activeStoryboard;
 
     private static readonly Brush BackgroundBrush = Brush("#11141B");
@@ -411,12 +414,13 @@ public sealed class CodexIslandWindow : Window
     {
         var primary = Dict(limits, "primary");
         var secondary = Dict(limits, "secondary");
+        TrackResetPolling(primary, secondary);
         five.Apply(primary, active);
         weekly.Apply(secondary, active);
         summary.Text = "5H " + Remaining(primary) + "   |   7D " + Remaining(secondary);
         status.Text = active
             ? "\u5df2\u66f4\u65b0  " + DateTime.Now.ToString("HH:mm:ss") + "  |  \u6bcf 15 \u79d2\u5237\u65b0"
-            : "\u5df2\u66f4\u65b0  " + DateTime.Now.ToString("HH:mm:ss") + "  |  \u7a7a\u95f2\u65f6\u6682\u505c";
+            : "\u5df2\u66f4\u65b0  " + DateTime.Now.ToString("HH:mm:ss") + "  |  \u7a7a\u95f2\u65f6\u6bcf 60 \u79d2\u6821\u51c6";
     }
 
     private void CheckActivity()
@@ -424,9 +428,55 @@ public sealed class CodexIslandWindow : Window
         active = IsCodexActive();
         UpdateIslandVisibility(active || IsCodexWindowVisible());
         if (active != wasActive) SetActiveVisual(active);
-        if (active && (!wasActive || (DateTime.Now - lastUsageRequest).TotalSeconds >= 15)) RequestUsage();
-        else status.Text = active ? "Codex \u5bf9\u8bdd\u4e2d  |  \u6bcf 15 \u79d2\u5237\u65b0" : "Codex \u7a7a\u95f2  |  \u5df2\u6682\u505c\u5237\u65b0";
+        DateTime now = DateTime.Now;
+        if (resetPollingTarget != DateTime.MinValue && now > resetPollingTarget.AddSeconds(90))
+        {
+            resetPollingTarget = DateTime.MinValue;
+            nextResetPoll = DateTime.MaxValue;
+            resetPollsRemaining = 0;
+        }
+        double secondsSinceRefresh = (DateTime.Now - lastUsageRequest).TotalSeconds;
+        bool resetPollDue = !active && resetPollsRemaining > 0 && now >= nextResetPoll;
+        bool shouldRefresh = resetPollDue || (active
+            ? !wasActive || secondsSinceRefresh >= 15
+            : wasActive || secondsSinceRefresh >= 60);
+        if (shouldRefresh)
+        {
+            RequestUsage();
+            if (resetPollDue)
+            {
+                resetPollsRemaining--;
+                nextResetPoll = now.AddSeconds(30);
+            }
+        }
+        else status.Text = active
+            ? "Codex \u5bf9\u8bdd\u4e2d  |  \u6bcf 15 \u79d2\u5237\u65b0"
+            : "Codex \u7a7a\u95f2  |  \u6bcf 60 \u79d2\u6821\u51c6";
         wasActive = active;
+    }
+
+    private void TrackResetPolling(Dictionary<string, object> primary, Dictionary<string, object> secondary)
+    {
+        if (resetPollingTarget != DateTime.MinValue) return;
+
+        DateTime next = DateTime.MaxValue;
+        foreach (Dictionary<string, object> window in new[] { primary, secondary })
+        {
+            if (window == null) continue;
+            object raw;
+            if (!window.TryGetValue("resetsAt", out raw) || raw == null) continue;
+            try
+            {
+                DateTime candidate = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(raw)).LocalDateTime;
+                if (candidate >= DateTime.Now && candidate < next) next = candidate;
+            }
+            catch { }
+        }
+        if (next == DateTime.MaxValue) return;
+
+        resetPollingTarget = next;
+        nextResetPoll = next.AddSeconds(-60);
+        resetPollsRemaining = 5;
     }
 
     private void CheckVisibility()
