@@ -19,7 +19,7 @@ Codex Usage Island stays at the top of the desktop, animates while Codex is work
 - Remaining percentage for the five-hour and weekly limits
 - Reset time in the expanded view
 - Active and idle visual states
-- Refreshes usage every 15 seconds only while a Codex turn is active
+- Refreshes every 15 seconds during a turn, immediately after completion, every 60 seconds while idle, and five times around each reset
 - Smooth WPF animations with antialiased rounded corners
 - Automatically hides when Codex is idle and minimized
 - No API key handling and no credential file access

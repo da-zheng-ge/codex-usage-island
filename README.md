@@ -46,7 +46,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 - 显示 5 小时和每周限额的剩余百分比
 - 展开后显示额度重置时间
 - Codex 工作时显示动态效果
-- 仅在 Codex 对话进行中每 15 秒刷新一次用量
+- Codex 对话进行中每 15 秒刷新，任务结束时立即刷新，空闲时每 60 秒校准，并在额度重置点前后间隔采样 5 次
 - WPF 抗锯齿圆角与平滑动画
 - Codex 空闲且最小化时自动隐藏
 - 不处理 API Key，也不读取认证文件
