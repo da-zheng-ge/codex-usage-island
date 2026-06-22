@@ -35,9 +35,9 @@ The project uses the local `codex app-server` process. The protocol is versioned
 
 ## Install
 
-Download the release ZIP, extract it, and double-click **Install.cmd**.
+Download the [latest main source ZIP](https://github.com/da-zheng-ge/codex-usage-island/archive/refs/heads/main.zip), extract it, and double-click **Install.cmd**.
 
-Alternatively, paste the ready-made prompt from [Install with Codex](INSTALL_WITH_CODEX.md) into Codex and let it download, verify, and install the latest release.
+Alternatively, paste the ready-made prompt from [Install with Codex](INSTALL_WITH_CODEX.md) into Codex and let it download, verify, and install the latest `main` version.
 
 Alternatively, run:
 
@@ -48,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 The installer:
 
 1. Copies the runtime to `%LOCALAPPDATA%\CodexUsageIsland`.
-2. Creates a **Codex Usage Island** desktop shortcut.
+2. Creates a **Codex Island** desktop shortcut.
 3. Starts the island once.
 
 The runtime discovers Codex automatically from a running app-server, Codex Desktop's local CLI directory, a VS Code extension installation, or `PATH`.
