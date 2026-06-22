@@ -67,6 +67,7 @@ The uninstaller only removes a directory containing the installation marker crea
 
 - Drag the island to reposition it; right-click and choose **Reset position** to return it to the top center.
 - Click the island to expand or collapse details.
+- Right-click and choose **Uninstall** to remove the app and desktop shortcut after confirmation.
 - Right-click and choose **Exit** to close it.
 - Double-click the desktop shortcut to open it again.
 - `ACTIVE` means a Codex turn is running.
