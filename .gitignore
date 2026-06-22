@@ -1,0 +1,7 @@
+*.log
+*.zip
+.vs/
+.vscode/
+releases/
+Thumbs.db
+Desktop.ini
