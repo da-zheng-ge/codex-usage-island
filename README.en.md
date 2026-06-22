@@ -2,6 +2,10 @@
 
 [简体中文](README.md)
 
+<p align="center">
+  <img src="assets/codex-usage-island-preview.svg" alt="Compact and expanded Codex Usage Island preview" width="100%">
+</p>
+
 An unofficial Windows floating island that shows the remaining Codex five-hour and weekly usage limits.
 
 Repository: <https://github.com/da-zheng-ge/codex-usage-island>

@@ -2,6 +2,10 @@
 
 [English](README.en.md)
 
+<p align="center">
+  <img src="assets/codex-usage-island-preview.svg" alt="Codex Usage Island 收起与展开界面预览" width="100%">
+</p>
+
 一个非官方的 Windows Codex 用量灵动岛，显示 5 小时和每周限额的剩余百分比。
 
 项目地址：<https://github.com/da-zheng-ge/codex-usage-island>
