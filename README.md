@@ -62,6 +62,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 ## 使用
 
+- 按住悬浮岛拖动可调整位置；右键选择“重置位置”可恢复到屏幕顶部居中。
 - 单击灵动岛展开或收起详情。
 - 右键选择“退出”关闭。
 - 双击桌面快捷方式重新打开。

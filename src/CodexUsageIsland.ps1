@@ -2,6 +2,18 @@ param(
     [string]$CodexPath
 )
 
+$createdNew = $false
+$singleInstanceMutex = [System.Threading.Mutex]::new(
+    $true,
+    'Local\CodexUsageIsland.SingleInstance',
+    [ref]$createdNew
+)
+
+if (-not $createdNew) {
+    $singleInstanceMutex.Dispose()
+    exit 0
+}
+
 function Resolve-CodexExecutable {
     $candidates = [System.Collections.Generic.List[string]]::new()
 
@@ -98,6 +110,12 @@ public sealed class CodexIslandWindow : Window
     private bool expanded;
     private bool desiredVisible = true;
     private bool visibilityAnimating;
+    private bool pointerDown;
+    private bool dragging;
+    private Point pointerStart;
+    private Point windowStart;
+    private double restingLeft;
+    private double restingTop;
     private DateTime lastUsageRequest = DateTime.MinValue;
     private Storyboard activeStoryboard;
 
@@ -153,13 +171,16 @@ public sealed class CodexIslandWindow : Window
         Put(details, 18, 72, 344, 205);
         BuildDetails();
 
-        shell.MouseLeftButtonUp += delegate { ToggleExpanded(); };
+        shell.MouseLeftButtonDown += OnShellMouseLeftButtonDown;
+        shell.MouseMove += OnShellMouseMove;
+        shell.MouseLeftButtonUp += OnShellMouseLeftButtonUp;
         var menu = new ContextMenu();
-        var toggleItem = new MenuItem { Header = "\u5c55\u5f00 / \u6536\u8d77" };
-        toggleItem.Click += delegate { ToggleExpanded(); };
+        var resetPositionItem = new MenuItem { Header = "\u91cd\u7f6e\u4f4d\u7f6e" };
+        resetPositionItem.Click += delegate { PositionAtTop(); };
         var exitItem = new MenuItem { Header = "\u9000\u51fa" };
         exitItem.Click += delegate { Close(); };
-        menu.Items.Add(toggleItem);
+        menu.Items.Add(resetPositionItem);
+        menu.Items.Add(new Separator());
         menu.Items.Add(exitItem);
         ContextMenu = menu;
 
@@ -207,27 +228,76 @@ public sealed class CodexIslandWindow : Window
         }
     }
 
+    private void OnShellMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        BeginAnimation(OpacityProperty, null);
+        BeginAnimation(TopProperty, null);
+        Opacity = 1;
+        visibilityAnimating = false;
+        pointerDown = true;
+        dragging = false;
+        pointerStart = PointerScreenPosition(e);
+        windowStart = new Point(Left, Top);
+        shell.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void OnShellMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!pointerDown || e.LeftButton != MouseButtonState.Pressed) return;
+        Point current = PointerScreenPosition(e);
+        Vector delta = current - pointerStart;
+        if (!dragging && Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+        dragging = true;
+        BeginAnimation(LeftProperty, null);
+        BeginAnimation(TopProperty, null);
+        visibilityAnimating = false;
+        Rect work = SystemParameters.WorkArea;
+        double width = ActualWidth > 0 ? ActualWidth : Width;
+        double height = ActualHeight > 0 ? ActualHeight : Height;
+        restingLeft = Math.Max(work.Left, Math.Min(work.Right - width, windowStart.X + delta.X));
+        restingTop = Math.Max(work.Top, Math.Min(work.Bottom - height, windowStart.Y + delta.Y));
+        Left = restingLeft;
+        Top = restingTop;
+        e.Handled = true;
+    }
+
+    private Point PointerScreenPosition(MouseEventArgs e)
+    {
+        Point physical = PointToScreen(e.GetPosition(this));
+        PresentationSource source = PresentationSource.FromVisual(this);
+        if (source == null || source.CompositionTarget == null) return physical;
+        return source.CompositionTarget.TransformFromDevice.Transform(physical);
+    }
+
+    private void OnShellMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!pointerDown) return;
+        pointerDown = false;
+        shell.ReleaseMouseCapture();
+        bool wasDragging = dragging;
+        dragging = false;
+        e.Handled = true;
+        if (!wasDragging) ToggleExpanded();
+    }
+
     private void AnimateWindow(double targetWidth, double targetHeight, bool opening)
     {
-        Rect work = SystemParameters.WorkArea;
-        double targetLeft = work.Left + (work.Width - targetWidth) / 2.0;
         var ease = new SineEase { EasingMode = EasingMode.EaseInOut };
         var duration = new Duration(TimeSpan.FromMilliseconds(500));
         var widthAnim = new DoubleAnimation(ActualWidth, targetWidth, duration) { EasingFunction = ease };
         var heightAnim = new DoubleAnimation(ActualHeight, targetHeight, duration) { EasingFunction = ease };
-        var leftAnim = new DoubleAnimation(Left, targetLeft, duration) { EasingFunction = ease };
         heightAnim.Completed += delegate {
             BeginAnimation(WidthProperty, null);
             BeginAnimation(HeightProperty, null);
-            BeginAnimation(LeftProperty, null);
             Width = targetWidth;
             Height = targetHeight;
-            Left = targetLeft;
             if (!opening) details.Visibility = Visibility.Collapsed;
         };
         BeginAnimation(WidthProperty, widthAnim, HandoffBehavior.SnapshotAndReplace);
         BeginAnimation(HeightProperty, heightAnim, HandoffBehavior.SnapshotAndReplace);
-        BeginAnimation(LeftProperty, leftAnim, HandoffBehavior.SnapshotAndReplace);
     }
 
     private static void AnimateOpacity(UIElement element, double target, int milliseconds)
@@ -239,8 +309,12 @@ public sealed class CodexIslandWindow : Window
     private void PositionAtTop()
     {
         Rect work = SystemParameters.WorkArea;
-        Left = work.Left + (work.Width - Width) / 2.0;
-        Top = work.Top + 10;
+        BeginAnimation(LeftProperty, null);
+        BeginAnimation(TopProperty, null);
+        restingLeft = work.Left + (work.Width - Width) / 2.0;
+        restingTop = work.Top + 10;
+        Left = restingLeft;
+        Top = restingTop;
     }
 
     private void StartServer()
@@ -321,15 +395,15 @@ public sealed class CodexIslandWindow : Window
     private void UpdateIslandVisibility(bool shouldShow)
     {
         desiredVisible = shouldShow;
+        if (pointerDown) return;
         if (shouldShow)
         {
             if (!IsVisible)
             {
-                double restingTop = SystemParameters.WorkArea.Top + 10;
                 Opacity = 0;
                 Top = restingTop - 12;
                 Show();
-                Left = SystemParameters.WorkArea.Left + (SystemParameters.WorkArea.Width - Width) / 2.0;
+                Left = restingLeft;
                 Topmost = true;
                 AnimateVisibility(true, restingTop);
             }
@@ -338,13 +412,14 @@ public sealed class CodexIslandWindow : Window
                 BeginAnimation(OpacityProperty, null);
                 BeginAnimation(TopProperty, null);
                 Opacity = 1;
-                Top = SystemParameters.WorkArea.Top + 10;
+                Left = restingLeft;
+                Top = restingTop;
                 visibilityAnimating = false;
             }
         }
         else if (IsVisible && !visibilityAnimating)
         {
-            AnimateVisibility(false, SystemParameters.WorkArea.Top + 10);
+            AnimateVisibility(false, restingTop);
         }
     }
 
@@ -562,7 +637,13 @@ Add-Type -TypeDefinition $source -ReferencedAssemblies @(
     'System.Web.Extensions'
 )
 
-$app = [System.Windows.Application]::new()
-$app.ShutdownMode = [System.Windows.ShutdownMode]::OnMainWindowClose
-$window = [CodexIslandWindow]::new($CodexPath)
-$app.Run($window)
+try {
+    $app = [System.Windows.Application]::new()
+    $app.ShutdownMode = [System.Windows.ShutdownMode]::OnMainWindowClose
+    $window = [CodexIslandWindow]::new($CodexPath)
+    $app.Run($window)
+}
+finally {
+    $singleInstanceMutex.ReleaseMutex()
+    $singleInstanceMutex.Dispose()
+}
