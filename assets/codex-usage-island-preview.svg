@@ -17,9 +17,6 @@
   </defs>
 
   <rect width="1200" height="560" rx="28" fill="url(#background)"/>
-  <circle cx="108" cy="92" r="120" fill="#14b8a6" opacity="0.08"/>
-  <circle cx="1110" cy="500" r="180" fill="#38bdf8" opacity="0.06"/>
-
   <text x="80" y="92" fill="#f8fafc" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">Codex Usage Island</text>
   <text x="80" y="128" fill="#94a3b8" font-family="Segoe UI, Arial, sans-serif" font-size="18">Windows 上的 Codex 剩余额度悬浮窗</text>
 

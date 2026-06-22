@@ -6,31 +6,6 @@
   <img src="assets/codex-usage-island-preview.svg" alt="Codex Usage Island 收起与展开界面预览" width="100%">
 </p>
 
-一个非官方的 Windows Codex 用量灵动岛，显示 5 小时和每周限额的剩余百分比。
-
-项目地址：<https://github.com/da-zheng-ge/codex-usage-island>
-
-> 本项目是非官方社区项目，与 OpenAI 没有关联，也未获得 OpenAI 的认可或赞助。
-
-## 功能
-
-- 显示 5 小时和每周限额的剩余百分比
-- 展开后显示额度重置时间
-- Codex 工作时显示动态效果
-- 仅在 Codex 对话进行中每 15 秒刷新一次用量
-- WPF 抗锯齿圆角与平滑动画
-- Codex 空闲且最小化时自动隐藏
-- 不处理 API Key，也不读取认证文件
-
-## 系统要求
-
-- Windows 10 或 Windows 11
-- Windows PowerShell 5.1 或更高版本
-- Codex Desktop 或本地安装的 Codex CLI
-- 已登录的 Codex 会话
-
-本项目使用本机的 `codex app-server`。该协议跟随 Codex 版本演进，未来版本可能发生变化。
-
 ## 安装
 
 ### 使用 Codex 安装（推荐）
@@ -65,6 +40,25 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 3. 启动一次灵动岛。
 
 程序会依次从正在运行的 app-server、Codex Desktop 本地 CLI 目录、VS Code 扩展目录和 `PATH` 中自动查找 Codex。
+
+## 功能
+
+- 显示 5 小时和每周限额的剩余百分比
+- 展开后显示额度重置时间
+- Codex 工作时显示动态效果
+- 仅在 Codex 对话进行中每 15 秒刷新一次用量
+- WPF 抗锯齿圆角与平滑动画
+- Codex 空闲且最小化时自动隐藏
+- 不处理 API Key，也不读取认证文件
+
+## 系统要求
+
+- Windows 10 或 Windows 11
+- Windows PowerShell 5.1 或更高版本
+- Codex Desktop 或本地安装的 Codex CLI
+- 已登录的 Codex 会话
+
+本项目使用本机的 `codex app-server`。该协议跟随 Codex 版本演进，未来版本可能发生变化。
 
 ## 使用
 
