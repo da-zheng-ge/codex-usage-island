@@ -35,9 +35,9 @@ The project uses the local `codex app-server` process. The protocol is versioned
 
 ## Install
 
-Download the release ZIP, extract it, and double-click **Install.cmd**.
+Download the [latest main source ZIP](https://github.com/da-zheng-ge/codex-usage-island/archive/refs/heads/main.zip), extract it, and double-click **Install.cmd**.
 
-Alternatively, paste the ready-made prompt from [Install with Codex](INSTALL_WITH_CODEX.md) into Codex and let it download, verify, and install the latest release.
+Alternatively, paste the ready-made prompt from [Install with Codex](INSTALL_WITH_CODEX.md) into Codex and let it download, verify, and install the latest `main` version.
 
 Alternatively, run:
 
@@ -48,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 The installer:
 
 1. Copies the runtime to `%LOCALAPPDATA%\CodexUsageIsland`.
-2. Creates a **Codex Usage Island** desktop shortcut.
+2. Creates a **Codex Island** desktop shortcut.
 3. Starts the island once.
 
 The runtime discovers Codex automatically from a running app-server, Codex Desktop's local CLI directory, a VS Code extension installation, or `PATH`.
@@ -67,6 +67,7 @@ The uninstaller only removes a directory containing the installation marker crea
 
 - Drag the island to reposition it; right-click and choose **Reset position** to return it to the top center.
 - Click the island to expand or collapse details.
+- Right-click and choose **Uninstall** to remove the app and desktop shortcut after confirmation.
 - Right-click and choose **Exit** to close it.
 - Double-click the desktop shortcut to open it again.
 - `ACTIVE` means a Codex turn is running.

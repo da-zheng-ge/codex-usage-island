@@ -6,7 +6,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $marker = Join-Path $InstallRoot '.codex-usage-island-install'
 $installedScript = Join-Path $InstallRoot 'CodexUsageIsland.ps1'
-$shortcutPath = Join-Path $ShortcutDirectory 'Codex Usage Island.lnk'
+$shortcutPath = Join-Path $ShortcutDirectory 'Codex Island.lnk'
+$legacyShortcutPath = Join-Path $ShortcutDirectory 'Codex Usage Island.lnk'
 
 if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) {
     throw "Refusing to remove an unrecognized directory: $InstallRoot"
@@ -24,6 +25,7 @@ Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction Sil
     }
 
 Remove-Item -LiteralPath $shortcutPath -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $legacyShortcutPath -Force -ErrorAction SilentlyContinue
 
 $runningFromInstallRoot = $PSCommandPath.StartsWith($InstallRoot, [StringComparison]::OrdinalIgnoreCase)
 if ($runningFromInstallRoot) {

@@ -13,7 +13,7 @@
 直接把下面这段话发送给 Codex：
 
 ```text
-请在这台 Windows 电脑上安装 https://github.com/da-zheng-ge/codex-usage-island 的 v1.0.0。下载 v1.0.0 标签的源码压缩包到临时目录，解压后运行 Install.cmd，最后确认桌面已经创建 Codex Usage Island 快捷方式。不要安装或替换 Codex 本身。
+请在这台 Windows 电脑上安装 https://github.com/da-zheng-ge/codex-usage-island 的最新 main 版本。下载 main 分支源码压缩包到临时目录，解压后运行 Install.cmd，最后确认桌面已经创建 Codex Island 快捷方式。不要安装或替换 Codex 本身。
 ```
 
 Codex 会自动下载、解压、运行安装程序并检查桌面快捷方式。根据权限设置，执行下载或安装前可能需要你确认。
@@ -22,10 +22,10 @@ Codex 会自动下载、解压、运行安装程序并检查桌面快捷方式�
 
 ### 手动安装
 
-1. 下载 [v1.0.0 源码压缩包](https://github.com/da-zheng-ge/codex-usage-island/archive/refs/tags/v1.0.0.zip)。
+1. 下载 [最新 main 源码压缩包](https://github.com/da-zheng-ge/codex-usage-island/archive/refs/heads/main.zip)。
 2. 解压 ZIP。
 3. 双击 **Install.cmd**。
-4. 安装完成后，双击桌面的 **Codex Usage Island** 快捷方式。
+4. 安装完成后，双击桌面的 **Codex Island** 快捷方式。
 
 也可以在项目目录运行：
 
@@ -36,7 +36,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 安装程序会：
 
 1. 将运行文件复制到 `%LOCALAPPDATA%\CodexUsageIsland`。
-2. 在桌面创建 **Codex Usage Island** 快捷方式。
+2. 在桌面创建 **Codex Island** 快捷方式。
 3. 启动一次灵动岛。
 
 程序会依次从正在运行的 app-server、Codex Desktop 本地 CLI 目录、VS Code 扩展目录和 `PATH` 中自动查找 Codex。
@@ -64,6 +64,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 - 按住悬浮岛拖动可调整位置；右键选择“重置位置”可恢复到屏幕顶部居中。
 - 单击灵动岛展开或收起详情。
+- 右键选择“卸载”可在确认后移除程序和桌面快捷方式。
 - 右键选择“退出”关闭。
 - 双击桌面快捷方式重新打开。
 - `ACTIVE` 表示 Codex 正在执行任务。

@@ -8,8 +8,17 @@ $singleInstanceMutex = [System.Threading.Mutex]::new(
     'Local\CodexUsageIsland.SingleInstance',
     [ref]$createdNew
 )
+$activationEventCreated = $false
+$activationEvent = [System.Threading.EventWaitHandle]::new(
+    $false,
+    [System.Threading.EventResetMode]::AutoReset,
+    'Local\CodexUsageIsland.Activate',
+    [ref]$activationEventCreated
+)
 
 if (-not $createdNew) {
+    $activationEvent.Set() | Out-Null
+    $activationEvent.Dispose()
     $singleInstanceMutex.Dispose()
     exit 0
 }
@@ -72,6 +81,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows;
 using System.Windows.Controls;
@@ -102,6 +112,8 @@ public sealed class CodexIslandWindow : Window
     private readonly LimitView weekly = new LimitView("\u6bcf\u5468\u5269\u4f59");
     private readonly DispatcherTimer activityTimer = new DispatcherTimer();
     private readonly DispatcherTimer visibilityTimer = new DispatcherTimer();
+    private readonly EventWaitHandle activationEvent;
+    private readonly string uninstallerPath;
     private Process server;
     private StreamWriter input;
     private int requestId = 2;
@@ -124,9 +136,11 @@ public sealed class CodexIslandWindow : Window
     private static readonly Brush AccentBrush = Brush("#5EEAD4");
     private static readonly Brush MutedBrush = Brush("#949EB2");
 
-    public CodexIslandWindow(string path)
+    public CodexIslandWindow(string path, string scriptPath, EventWaitHandle activation)
     {
         codexPath = path;
+        activationEvent = activation;
+        uninstallerPath = Path.Combine(Path.GetDirectoryName(scriptPath), "uninstall.ps1");
         Title = "Codex Usage Island";
         Width = 380;
         Height = 64;
@@ -177,17 +191,20 @@ public sealed class CodexIslandWindow : Window
         var menu = new ContextMenu();
         var resetPositionItem = new MenuItem { Header = "\u91cd\u7f6e\u4f4d\u7f6e" };
         resetPositionItem.Click += delegate { PositionAtTop(); };
+        var uninstallItem = new MenuItem { Header = "\u5378\u8f7d", IsEnabled = File.Exists(uninstallerPath) };
+        uninstallItem.Click += delegate { Uninstall(); };
         var exitItem = new MenuItem { Header = "\u9000\u51fa" };
         exitItem.Click += delegate { Close(); };
         menu.Items.Add(resetPositionItem);
         menu.Items.Add(new Separator());
+        menu.Items.Add(uninstallItem);
         menu.Items.Add(exitItem);
         ContextMenu = menu;
 
         activityTimer.Interval = TimeSpan.FromMilliseconds(750);
         activityTimer.Tick += delegate { CheckActivity(); };
         visibilityTimer.Interval = TimeSpan.FromMilliseconds(250);
-        visibilityTimer.Tick += delegate { UpdateIslandVisibility(active || IsCodexWindowVisible()); };
+        visibilityTimer.Tick += delegate { CheckVisibility(); };
         Loaded += delegate { PositionAtTop(); StartServer(); };
         Closed += delegate { StopServer(); };
     }
@@ -208,6 +225,26 @@ public sealed class CodexIslandWindow : Window
         details.Children.Add(five.Card);
         details.Children.Add(weekly.Card);
         details.Children.Add(status);
+    }
+
+    private void Uninstall()
+    {
+        MessageBoxResult result = MessageBox.Show(
+            "\u786e\u5b9a\u8981\u5378\u8f7d Codex Usage Island \u5417\uff1f",
+            "Codex Usage Island",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning
+        );
+        if (result != MessageBoxResult.Yes) return;
+
+        var startInfo = new ProcessStartInfo {
+            FileName = "powershell.exe",
+            Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"" + uninstallerPath + "\"",
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        Process.Start(startInfo);
+        Close();
     }
 
     private void ToggleExpanded()
@@ -392,11 +429,21 @@ public sealed class CodexIslandWindow : Window
         wasActive = active;
     }
 
+    private void CheckVisibility()
+    {
+        if (activationEvent.WaitOne(0))
+        {
+            UpdateIslandVisibility(true);
+            return;
+        }
+        UpdateIslandVisibility(active || IsCodexWindowVisible());
+    }
+
     private void UpdateIslandVisibility(bool shouldShow)
     {
         desiredVisible = shouldShow;
         if (pointerDown) return;
-        if (shouldShow)
+        if (desiredVisible)
         {
             if (!IsVisible)
             {
@@ -514,14 +561,15 @@ public sealed class CodexIslandWindow : Window
             string[] lines = System.Text.Encoding.UTF8.GetString(bytes).Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             for (int i = lines.Length - 1; i >= 0; i--)
             {
-                if (!lines[i].Contains("task_started") && !lines[i].Contains("task_complete")) continue;
+                if (!lines[i].Contains("task_started") && !lines[i].Contains("task_complete") &&
+                    !lines[i].Contains("turn_aborted")) continue;
                 try
                 {
                     var root = json.DeserializeObject(lines[i]) as Dictionary<string, object>;
                     if (root == null || Convert.ToString(root["type"]) != "event_msg") continue;
                     var payload = root["payload"] as Dictionary<string, object>;
                     string type = payload == null ? null : Convert.ToString(payload["type"]);
-                    if (type == "task_started" || type == "task_complete") return type;
+                    if (type == "task_started" || type == "task_complete" || type == "turn_aborted") return type;
                 }
                 catch { }
             }
@@ -640,10 +688,11 @@ Add-Type -TypeDefinition $source -ReferencedAssemblies @(
 try {
     $app = [System.Windows.Application]::new()
     $app.ShutdownMode = [System.Windows.ShutdownMode]::OnMainWindowClose
-    $window = [CodexIslandWindow]::new($CodexPath)
+    $window = [CodexIslandWindow]::new($CodexPath, $PSCommandPath, $activationEvent)
     $app.Run($window)
 }
 finally {
+    $activationEvent.Dispose()
     $singleInstanceMutex.ReleaseMutex()
     $singleInstanceMutex.Dispose()
 }
