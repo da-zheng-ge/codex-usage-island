@@ -202,6 +202,8 @@ public sealed class CodexIslandWindow : Window
         updateItem.Click += delegate { UpdateApp(); };
         var resetPositionItem = new MenuItem { Header = "\u91cd\u7f6e\u4f4d\u7f6e" };
         resetPositionItem.Click += delegate { PositionAtTop(); };
+        var githubItem = new MenuItem { Header = "GitHub" };
+        githubItem.Click += delegate { OpenGitHub(); };
         var uninstallItem = new MenuItem { Header = "\u5378\u8f7d", IsEnabled = File.Exists(uninstallerPath) };
         uninstallItem.Click += delegate { Uninstall(); };
         var exitItem = new MenuItem { Header = "\u9000\u51fa" };
@@ -209,6 +211,7 @@ public sealed class CodexIslandWindow : Window
         menu.Items.Add(refreshItem);
         menu.Items.Add(updateItem);
         menu.Items.Add(resetPositionItem);
+        menu.Items.Add(githubItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(uninstallItem);
         menu.Items.Add(exitItem);
@@ -258,6 +261,14 @@ public sealed class CodexIslandWindow : Window
         };
         Process.Start(startInfo);
         Close();
+    }
+
+    private void OpenGitHub()
+    {
+        Process.Start(new ProcessStartInfo {
+            FileName = "https://github.com/da-zheng-ge/codex-usage-island",
+            UseShellExecute = true
+        });
     }
 
     private void UpdateApp()
