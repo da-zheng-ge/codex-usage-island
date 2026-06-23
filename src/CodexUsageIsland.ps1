@@ -205,8 +205,8 @@ public sealed class CodexIslandWindow : Window
         updateItem.Click += delegate { UpdateApp(); };
         var resetPositionItem = new MenuItem { Header = "\u91cd\u7f6e\u4f4d\u7f6e" };
         resetPositionItem.Click += delegate { PositionAtTop(); };
-        var bottomItem = new MenuItem { Header = "\u6c89\u5230\u5e95\u90e8" };
-        bottomItem.Click += delegate { PositionAtBottom(); };
+        var taskbarItem = new MenuItem { Header = "\u6536\u8fdb\u4efb\u52a1\u680f" };
+        taskbarItem.Click += delegate { MinimizeToTaskbar(); };
         var githubItem = new MenuItem { Header = "GitHub" };
         githubItem.Click += delegate { OpenGitHub(); };
         var uninstallItem = new MenuItem { Header = "\u5378\u8f7d", IsEnabled = File.Exists(uninstallerPath) };
@@ -216,7 +216,7 @@ public sealed class CodexIslandWindow : Window
         menu.Items.Add(refreshItem);
         menu.Items.Add(updateItem);
         menu.Items.Add(resetPositionItem);
-        menu.Items.Add(bottomItem);
+        menu.Items.Add(taskbarItem);
         menu.Items.Add(githubItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(uninstallItem);
@@ -228,6 +228,7 @@ public sealed class CodexIslandWindow : Window
         visibilityTimer.Interval = TimeSpan.FromMilliseconds(250);
         visibilityTimer.Tick += delegate { CheckVisibility(); };
         Loaded += delegate { PositionAtTop(); StartServer(); CheckForUpdatesAsync(); };
+        StateChanged += delegate { RestoreFromTaskbarIfNeeded(); };
         Closed += delegate { StopServer(); };
     }
 
@@ -534,39 +535,29 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File $install
         Top = restingTop;
     }
 
-    private void PositionAtBottom()
+    private void MinimizeToTaskbar()
     {
-        Rect work = SystemParameters.WorkArea;
-        double width = ActualWidth > 0 ? ActualWidth : Width;
-        double height = ActualHeight > 0 ? ActualHeight : Height;
-        restingLeft = work.Left + (work.Width - width) / 2.0;
-        restingTop = work.Bottom - height - 10;
-        AnimateToRestingPosition(true);
-    }
-
-    private void AnimateToRestingPosition(bool bounce)
-    {
-        BeginAnimation(LeftProperty, null);
+        BeginAnimation(OpacityProperty, null);
         BeginAnimation(TopProperty, null);
         visibilityAnimating = false;
+        ShowInTaskbar = true;
+        Topmost = false;
+        WindowState = WindowState.Minimized;
+    }
 
-        var leftAnim = new DoubleAnimation(Left, restingLeft, new Duration(TimeSpan.FromMilliseconds(520))) {
-            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
-        };
-        IEasingFunction topEase = bounce
-            ? (IEasingFunction)new BounceEase { EasingMode = EasingMode.EaseOut, Bounces = 2, Bounciness = 2.2 }
-            : new SineEase { EasingMode = EasingMode.EaseInOut };
-        var topAnim = new DoubleAnimation(Top, restingTop, new Duration(TimeSpan.FromMilliseconds(720))) {
-            EasingFunction = topEase
-        };
-        topAnim.Completed += delegate {
-            BeginAnimation(LeftProperty, null);
-            BeginAnimation(TopProperty, null);
-            Left = restingLeft;
-            Top = restingTop;
-        };
-        BeginAnimation(LeftProperty, leftAnim, HandoffBehavior.SnapshotAndReplace);
-        BeginAnimation(TopProperty, topAnim, HandoffBehavior.SnapshotAndReplace);
+    private void RestoreFromTaskbarIfNeeded()
+    {
+        if (WindowState != WindowState.Normal || !ShowInTaskbar) return;
+        ShowInTaskbar = false;
+        Topmost = true;
+        BeginAnimation(OpacityProperty, null);
+        BeginAnimation(LeftProperty, null);
+        BeginAnimation(TopProperty, null);
+        Opacity = 1;
+        Left = restingLeft;
+        Top = restingTop;
+        desiredVisible = true;
+        visibilityAnimating = false;
     }
 
     private void StartServer()
