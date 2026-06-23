@@ -101,7 +101,9 @@ public sealed class CodexIslandWindow : Window
 
     private readonly string codexPath;
     private readonly JavaScriptSerializer json = new JavaScriptSerializer();
-    private readonly MenuItem updateItem = new MenuItem { Header = "\u66f4\u65b0" };
+    private readonly MenuItem updateItem = new MenuItem();
+    private readonly TextBlock updateHeaderText = new TextBlock();
+    private readonly System.Windows.Shapes.Ellipse updateDot = new System.Windows.Shapes.Ellipse { Width = 8, Height = 8, Visibility = Visibility.Collapsed };
     private string currentVersion = "unknown";
     private string latestVersion = "checking";
     private bool updateAvailable;
@@ -199,6 +201,7 @@ public sealed class CodexIslandWindow : Window
         var menu = new ContextMenu();
         var refreshItem = new MenuItem { Header = "\u5237\u65b0\u989d\u5ea6" };
         refreshItem.Click += delegate { RequestUsage(); };
+        updateItem.Header = BuildUpdateHeader();
         updateItem.Click += delegate { UpdateApp(); };
         var resetPositionItem = new MenuItem { Header = "\u91cd\u7f6e\u4f4d\u7f6e" };
         resetPositionItem.Click += delegate { PositionAtTop(); };
@@ -347,8 +350,22 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File $install
 
     private void UpdateVersionMenu()
     {
-        string prefix = updateAvailable ? "\u25cf " : "";
-        updateItem.Header = prefix + "\u66f4\u65b0  \u5f53\u524d " + ShortVersion(currentVersion) + " / \u6700\u65b0 " + ShortVersion(latestVersion);
+        updateHeaderText.Text = "\u66f4\u65b0  \u5f53\u524d " + ShortVersion(currentVersion) + " / \u6700\u65b0 " + ShortVersion(latestVersion);
+        updateDot.Visibility = updateAvailable ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private UIElement BuildUpdateHeader()
+    {
+        var grid = new Grid();
+        updateHeaderText.VerticalAlignment = VerticalAlignment.Center;
+        updateDot.Fill = Brush("#EF4444");
+        updateDot.HorizontalAlignment = HorizontalAlignment.Left;
+        updateDot.VerticalAlignment = VerticalAlignment.Top;
+        updateDot.Margin = new Thickness(24, -2, 0, 0);
+        grid.Children.Add(updateHeaderText);
+        grid.Children.Add(updateDot);
+        UpdateVersionMenu();
+        return grid;
     }
 
     private static string ShortVersion(string value)
