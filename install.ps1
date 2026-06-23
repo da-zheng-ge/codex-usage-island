@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSCommandPath
 $sourceScript = Join-Path $projectRoot 'src\CodexUsageIsland.ps1'
 $sourceUninstaller = Join-Path $projectRoot 'uninstall.ps1'
+$sourceVersion = Join-Path $projectRoot 'VERSION'
 
 if (-not (Test-Path -LiteralPath $sourceScript -PathType Leaf)) {
     throw "Runtime script not found: $sourceScript"
@@ -16,6 +17,7 @@ if (-not (Test-Path -LiteralPath $sourceScript -PathType Leaf)) {
 $installedScript = Join-Path $InstallRoot 'CodexUsageIsland.ps1'
 $installedUninstaller = Join-Path $InstallRoot 'uninstall.ps1'
 $installedIcon = Join-Path $InstallRoot 'CodexUsageIslandBlackV3.ico'
+$installedVersion = Join-Path $InstallRoot '.version'
 $marker = Join-Path $InstallRoot '.codex-usage-island-install'
 $shortcutPath = Join-Path $ShortcutDirectory 'Codex Island.lnk'
 $legacyShortcutPath = Join-Path $ShortcutDirectory 'Codex Usage Island.lnk'
@@ -123,6 +125,22 @@ Copy-Item -LiteralPath $sourceScript -Destination $installedScript -Force
 Copy-Item -LiteralPath $sourceUninstaller -Destination $installedUninstaller -Force
 New-AppIcon -Path $installedIcon
 Set-Content -LiteralPath $marker -Value 'Codex Usage Island installation marker' -Encoding ASCII
+
+$version = 'unknown'
+if (Test-Path -LiteralPath $sourceVersion -PathType Leaf) {
+    $version = (Get-Content -LiteralPath $sourceVersion -Raw).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($version) -or $version -eq 'unknown') {
+    try {
+        $git = Get-Command git -ErrorAction Stop
+        $head = & $git.Source -C $projectRoot rev-parse --short HEAD 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($head)) {
+            $version = $head.Trim()
+        }
+    }
+    catch {}
+}
+Set-Content -LiteralPath $installedVersion -Value $version -Encoding ASCII
 
 New-Item -ItemType Directory -Path $ShortcutDirectory -Force | Out-Null
 Remove-Item -LiteralPath $legacyShortcutPath -Force -ErrorAction SilentlyContinue
