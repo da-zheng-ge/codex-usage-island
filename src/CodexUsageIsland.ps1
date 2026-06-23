@@ -205,8 +205,6 @@ public sealed class CodexIslandWindow : Window
         updateItem.Click += delegate { UpdateApp(); };
         var resetPositionItem = new MenuItem { Header = "\u91cd\u7f6e\u4f4d\u7f6e" };
         resetPositionItem.Click += delegate { PositionAtTop(); };
-        var taskbarItem = new MenuItem { Header = "\u6536\u8fdb\u4efb\u52a1\u680f" };
-        taskbarItem.Click += delegate { MinimizeToTaskbar(); };
         var githubItem = new MenuItem { Header = "GitHub" };
         githubItem.Click += delegate { OpenGitHub(); };
         var uninstallItem = new MenuItem { Header = "\u5378\u8f7d", IsEnabled = File.Exists(uninstallerPath) };
@@ -216,7 +214,6 @@ public sealed class CodexIslandWindow : Window
         menu.Items.Add(refreshItem);
         menu.Items.Add(updateItem);
         menu.Items.Add(resetPositionItem);
-        menu.Items.Add(taskbarItem);
         menu.Items.Add(githubItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(uninstallItem);
@@ -228,7 +225,6 @@ public sealed class CodexIslandWindow : Window
         visibilityTimer.Interval = TimeSpan.FromMilliseconds(250);
         visibilityTimer.Tick += delegate { CheckVisibility(); };
         Loaded += delegate { PositionAtTop(); StartServer(); CheckForUpdatesAsync(); };
-        StateChanged += delegate { RestoreFromTaskbarIfNeeded(); };
         Closed += delegate { StopServer(); };
     }
 
@@ -533,31 +529,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File $install
         restingTop = work.Top + 10;
         Left = restingLeft;
         Top = restingTop;
-    }
-
-    private void MinimizeToTaskbar()
-    {
-        BeginAnimation(OpacityProperty, null);
-        BeginAnimation(TopProperty, null);
-        visibilityAnimating = false;
-        ShowInTaskbar = true;
-        Topmost = false;
-        WindowState = WindowState.Minimized;
-    }
-
-    private void RestoreFromTaskbarIfNeeded()
-    {
-        if (WindowState != WindowState.Normal || !ShowInTaskbar) return;
-        ShowInTaskbar = false;
-        Topmost = true;
-        BeginAnimation(OpacityProperty, null);
-        BeginAnimation(LeftProperty, null);
-        BeginAnimation(TopProperty, null);
-        Opacity = 1;
-        Left = restingLeft;
-        Top = restingTop;
-        desiredVisible = true;
-        visibilityAnimating = false;
     }
 
     private void StartServer()
