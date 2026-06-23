@@ -66,6 +66,7 @@ The uninstaller only removes a directory containing the installation marker crea
 ## Usage
 
 - Drag the island to reposition it; right-click and choose **Reset position** to return it to the top center.
+- Right-click and choose **Sink to bottom** to animate the island to the bottom center above the taskbar.
 - Click the island to expand or collapse details.
 - Right-click and choose **Refresh usage** to refresh immediately, or **Update** to install the latest version from GitHub. The update item shows current/latest short versions and a red dot when a newer build is available.
 - Right-click and choose **GitHub** to open the project repository.
