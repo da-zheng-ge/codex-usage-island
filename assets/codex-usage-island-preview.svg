@@ -46,16 +46,16 @@
     <text x="412" y="112" text-anchor="end" fill="#5eead4" font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700">34%</text>
     <rect x="38" y="130" width="374" height="10" rx="5" fill="#323a4a"/>
     <rect x="38" y="130" width="127" height="10" rx="5" fill="url(#accent)"/>
-    <text x="38" y="163" fill="#949eb2" font-family="Segoe UI, Arial, sans-serif" font-size="14">已用 66%  |  重置 06-22 15:47</text>
+    <text x="38" y="163" fill="#949eb2" font-family="Segoe UI, Arial, sans-serif" font-size="14">下一次重置时间 <tspan fill="#5eead4" font-size="15" font-weight="700">15:47</tspan>，还有 4 小时 12 分</text>
 
     <rect x="18" y="198" width="414" height="104" rx="14" fill="#1b202b"/>
     <text x="38" y="230" fill="#eef2f8" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">每周剩余</text>
     <text x="412" y="230" text-anchor="end" fill="#fbbf24" font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700">13%</text>
     <rect x="38" y="248" width="374" height="10" rx="5" fill="#323a4a"/>
     <rect x="38" y="248" width="49" height="10" rx="5" fill="#fbbf24"/>
-    <text x="38" y="281" fill="#949eb2" font-family="Segoe UI, Arial, sans-serif" font-size="14">已用 87%  |  重置 06-25 10:58</text>
+    <text x="38" y="281" fill="#949eb2" font-family="Segoe UI, Arial, sans-serif" font-size="14">下一次重置时间 06-25 10:58</text>
 
-    <text x="28" y="326" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="13">Codex 空闲  |  已暂停刷新</text>
+    <text x="28" y="326" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="13">Codex 空闲</text>
   </g>
   <text x="895" y="530" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="15">展开状态</text>
 </svg>

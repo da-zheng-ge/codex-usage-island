@@ -19,7 +19,7 @@ Codex Usage Island stays at the top of the desktop, animates while Codex is work
 - Remaining percentage for the five-hour and weekly limits
 - Reset time in the expanded view
 - Active and idle visual states
-- Refreshes every 15 seconds during a turn, immediately after completion, every 60 seconds while idle, and five times around each reset
+- Refreshes every 15 seconds during a turn and immediately after completion; while idle, it only polls five times around each reset
 - Smooth WPF animations with antialiased rounded corners
 - Automatically hides when Codex is idle and minimized
 - No API key handling and no credential file access
@@ -67,6 +67,7 @@ The uninstaller only removes a directory containing the installation marker crea
 
 - Drag the island to reposition it; right-click and choose **Reset position** to return it to the top center.
 - Click the island to expand or collapse details.
+- Right-click and choose **Refresh usage** to refresh immediately, or **Update** to install the latest version from GitHub. The update item shows current/latest short versions and a red dot when a newer build is available.
 - Right-click and choose **Uninstall** to remove the app and desktop shortcut after confirmation.
 - Right-click and choose **Exit** to close it.
 - Double-click the desktop shortcut to open it again.

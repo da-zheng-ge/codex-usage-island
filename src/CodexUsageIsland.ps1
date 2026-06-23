@@ -80,6 +80,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Web.Script.Serialization;
@@ -100,6 +101,10 @@ public sealed class CodexIslandWindow : Window
 
     private readonly string codexPath;
     private readonly JavaScriptSerializer json = new JavaScriptSerializer();
+    private readonly MenuItem updateItem = new MenuItem { Header = "\u66f4\u65b0" };
+    private string currentVersion = "unknown";
+    private string latestVersion = "checking";
+    private bool updateAvailable;
     private readonly Canvas canvas = new Canvas();
     private readonly Border shell = new Border();
     private readonly TextBlock summary = Text("5H --%   |   7D --%", 15, true, "#5EEAD4");
@@ -108,8 +113,8 @@ public sealed class CodexIslandWindow : Window
     private readonly Border scanLine = new Border();
     private readonly Grid details = new Grid();
     private readonly TextBlock status = Text("Connecting...", 12, false, "#949EB2");
-    private readonly LimitView five = new LimitView("5 \u5c0f\u65f6\u5269\u4f59");
-    private readonly LimitView weekly = new LimitView("\u6bcf\u5468\u5269\u4f59");
+    private readonly LimitView five = new LimitView("5 \u5c0f\u65f6\u5269\u4f59", false);
+    private readonly LimitView weekly = new LimitView("\u6bcf\u5468\u5269\u4f59", true);
     private readonly DispatcherTimer activityTimer = new DispatcherTimer();
     private readonly DispatcherTimer visibilityTimer = new DispatcherTimer();
     private readonly EventWaitHandle activationEvent;
@@ -192,12 +197,17 @@ public sealed class CodexIslandWindow : Window
         shell.MouseMove += OnShellMouseMove;
         shell.MouseLeftButtonUp += OnShellMouseLeftButtonUp;
         var menu = new ContextMenu();
+        var refreshItem = new MenuItem { Header = "\u5237\u65b0\u989d\u5ea6" };
+        refreshItem.Click += delegate { RequestUsage(); };
+        updateItem.Click += delegate { UpdateApp(); };
         var resetPositionItem = new MenuItem { Header = "\u91cd\u7f6e\u4f4d\u7f6e" };
         resetPositionItem.Click += delegate { PositionAtTop(); };
         var uninstallItem = new MenuItem { Header = "\u5378\u8f7d", IsEnabled = File.Exists(uninstallerPath) };
         uninstallItem.Click += delegate { Uninstall(); };
         var exitItem = new MenuItem { Header = "\u9000\u51fa" };
         exitItem.Click += delegate { Close(); };
+        menu.Items.Add(refreshItem);
+        menu.Items.Add(updateItem);
         menu.Items.Add(resetPositionItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(uninstallItem);
@@ -208,7 +218,7 @@ public sealed class CodexIslandWindow : Window
         activityTimer.Tick += delegate { CheckActivity(); };
         visibilityTimer.Interval = TimeSpan.FromMilliseconds(250);
         visibilityTimer.Tick += delegate { CheckVisibility(); };
-        Loaded += delegate { PositionAtTop(); StartServer(); };
+        Loaded += delegate { PositionAtTop(); StartServer(); CheckForUpdatesAsync(); };
         Closed += delegate { StopServer(); };
     }
 
@@ -248,6 +258,142 @@ public sealed class CodexIslandWindow : Window
         };
         Process.Start(startInfo);
         Close();
+    }
+
+    private void UpdateApp()
+    {
+        MessageBoxResult result = MessageBox.Show(
+            "\u5c06\u4ece GitHub \u4e0b\u8f7d\u5e76\u5b89\u88c5\u6700\u65b0\u7248\u672c\uff0c\u662f\u5426\u7ee7\u7eed\uff1f",
+            "Codex Usage Island",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question
+        );
+        if (result != MessageBoxResult.Yes) return;
+
+        status.Text = "\u6b63\u5728\u66f4\u65b0...";
+        string script = @"
+$ErrorActionPreference = 'Stop'
+$work = Join-Path $env:TEMP ('codex-usage-island-update-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $work -Force | Out-Null
+$zip = Join-Path $work 'main.zip'
+Invoke-WebRequest -Uri 'https://github.com/da-zheng-ge/codex-usage-island/archive/refs/heads/main.zip' -OutFile $zip -UseBasicParsing
+Expand-Archive -LiteralPath $zip -DestinationPath $work -Force
+$install = Join-Path $work 'codex-usage-island-main\install.ps1'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $install
+";
+        string encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+        var startInfo = new ProcessStartInfo {
+            FileName = "powershell.exe",
+            Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + encoded,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        Process.Start(startInfo);
+        Close();
+    }
+
+    private void CheckForUpdatesAsync()
+    {
+        LoadCurrentVersion();
+        UpdateVersionMenu();
+        ThreadPool.QueueUserWorkItem(delegate {
+            try
+            {
+                using (var client = new WebClient())
+                {
+                    client.Headers.Add("User-Agent", "CodexUsageIsland");
+                    string response = client.DownloadString("https://api.github.com/repos/da-zheng-ge/codex-usage-island/releases/latest");
+                    var root = json.DeserializeObject(response) as Dictionary<string, object>;
+                    if (root == null || !root.ContainsKey("tag_name")) return;
+                    string latest = Convert.ToString(root["tag_name"]);
+                    if (string.IsNullOrWhiteSpace(latest)) return;
+                    latestVersion = latest.Trim();
+                    updateAvailable = IsNewerVersion(latestVersion, currentVersion);
+                    Dispatcher.BeginInvoke((Action)(() => UpdateVersionMenu()));
+                }
+            }
+            catch
+            {
+                latestVersion = "unknown";
+                Dispatcher.BeginInvoke((Action)(() => UpdateVersionMenu()));
+            }
+        });
+    }
+
+    private void LoadCurrentVersion()
+    {
+        try
+        {
+            string versionPath = Path.Combine(Path.GetDirectoryName(uninstallerPath), ".version");
+            if (File.Exists(versionPath))
+            {
+                string value = File.ReadAllText(versionPath).Trim();
+                if (!string.IsNullOrWhiteSpace(value)) currentVersion = value;
+            }
+        }
+        catch { }
+    }
+
+    private void UpdateVersionMenu()
+    {
+        string prefix = updateAvailable ? "\u25cf " : "";
+        updateItem.Header = prefix + "\u66f4\u65b0  \u5f53\u524d " + ShortVersion(currentVersion) + " / \u6700\u65b0 " + ShortVersion(latestVersion);
+    }
+
+    private static string ShortVersion(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "unknown";
+        value = value.Trim();
+        if (value.Length > 7)
+        {
+            bool hexLike = true;
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+                {
+                    hexLike = false;
+                    break;
+                }
+            }
+            if (hexLike) return value.Substring(0, 7);
+        }
+        return value;
+    }
+
+    private static bool IsNewerVersion(string latest, string current)
+    {
+        int[] latestParts = ParseVersion(latest);
+        int[] currentParts = ParseVersion(current);
+        if (latestParts == null || currentParts == null)
+        {
+            return current != "unknown" && !string.Equals(latest, current, StringComparison.OrdinalIgnoreCase);
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (latestParts[i] > currentParts[i]) return true;
+            if (latestParts[i] < currentParts[i]) return false;
+        }
+        return false;
+    }
+
+    private static int[] ParseVersion(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        value = value.Trim();
+        if (value.StartsWith("v", StringComparison.OrdinalIgnoreCase)) value = value.Substring(1);
+        int suffix = value.IndexOfAny(new[] { '-', '+' });
+        if (suffix >= 0) value = value.Substring(0, suffix);
+        string[] tokens = value.Split('.');
+        int[] parts = new[] { 0, 0, 0 };
+        for (int i = 0; i < tokens.Length && i < 3; i++)
+        {
+            int parsed;
+            if (!int.TryParse(tokens[i], out parsed)) return null;
+            parts[i] = parsed;
+        }
+        return parts;
     }
 
     private void ToggleExpanded()
@@ -420,7 +566,7 @@ public sealed class CodexIslandWindow : Window
         summary.Text = "5H " + Remaining(primary) + "   |   7D " + Remaining(secondary);
         status.Text = active
             ? "\u5df2\u66f4\u65b0  " + DateTime.Now.ToString("HH:mm:ss") + "  |  \u6bcf 15 \u79d2\u5237\u65b0"
-            : "\u5df2\u66f4\u65b0  " + DateTime.Now.ToString("HH:mm:ss") + "  |  \u7a7a\u95f2\u65f6\u6bcf 60 \u79d2\u6821\u51c6";
+            : "\u5df2\u66f4\u65b0  " + DateTime.Now.ToString("HH:mm:ss");
     }
 
     private void CheckActivity()
@@ -439,7 +585,7 @@ public sealed class CodexIslandWindow : Window
         bool resetPollDue = !active && resetPollsRemaining > 0 && now >= nextResetPoll;
         bool shouldRefresh = resetPollDue || (active
             ? !wasActive || secondsSinceRefresh >= 15
-            : wasActive || secondsSinceRefresh >= 60);
+            : wasActive);
         if (shouldRefresh)
         {
             RequestUsage();
@@ -451,7 +597,7 @@ public sealed class CodexIslandWindow : Window
         }
         else status.Text = active
             ? "Codex \u5bf9\u8bdd\u4e2d  |  \u6bcf 15 \u79d2\u5237\u65b0"
-            : "Codex \u7a7a\u95f2  |  \u6bcf 60 \u79d2\u6821\u51c6";
+            : "Codex \u7a7a\u95f2";
         wasActive = active;
     }
 
@@ -681,9 +827,11 @@ public sealed class CodexIslandWindow : Window
         private readonly TextBlock value = Text("--%", 18, true, "#5EEAD4");
         private readonly TextBlock reset = Text("\u7b49\u5f85\u6570\u636e", 11, false, "#949EB2");
         private readonly Border fill = new Border { Height = 9, CornerRadius = new CornerRadius(5), Background = AccentBrush, HorizontalAlignment = HorizontalAlignment.Left };
+        private readonly bool showResetDate;
 
-        public LimitView(string name)
+        public LimitView(string name, bool showResetDate)
         {
+            this.showResetDate = showResetDate;
             var grid = new Grid();
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(29) });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(15) });
@@ -719,9 +867,27 @@ public sealed class CodexIslandWindow : Window
             if (window.TryGetValue("resetsAt", out raw) && raw != null)
             {
                 DateTime local = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(raw)).LocalDateTime;
-                reset.Text = "\u5df2\u7528 " + used + "%  |  \u91cd\u7f6e " + local.ToString("MM-dd HH:mm");
+                reset.Inlines.Clear();
+                reset.Inlines.Add(new System.Windows.Documents.Run("\u4e0b\u4e00\u6b21\u91cd\u7f6e\u65f6\u95f4 "));
+                if (showResetDate)
+                {
+                    reset.Inlines.Add(new System.Windows.Documents.Run(local.ToString("MM-dd HH:mm")));
+                }
+                else
+                {
+                    TimeSpan remainingTime = local - DateTime.Now;
+                    if (remainingTime < TimeSpan.Zero) remainingTime = TimeSpan.Zero;
+                    int hours = (int)Math.Floor(remainingTime.TotalHours);
+                    int minutes = remainingTime.Minutes;
+                    reset.Inlines.Add(new System.Windows.Documents.Run(local.ToString("HH:mm")) {
+                        Foreground = AccentBrush,
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 13
+                    });
+                    reset.Inlines.Add(new System.Windows.Documents.Run("\uff0c\u8fd8\u6709 " + hours + " \u5c0f\u65f6 " + minutes + " \u5206"));
+                }
             }
-            else reset.Text = "\u5df2\u7528 " + used + "%";
+            else reset.Text = "\u6682\u65e0\u91cd\u7f6e\u65f6\u95f4";
         }
     }
 }
